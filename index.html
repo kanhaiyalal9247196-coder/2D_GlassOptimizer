@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cutlist — 2D Sheet Optimizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F4EF;
+    --panel:#FFFFFF;
+    --ink:#1B2430;
+    --ink-soft:#5C6672;
+    --ink-faint:#9AA2AB;
+    --blue:#2C5C86;
+    --blue-deep:#1D3D59;
+    --amber:#C9791E;
+    --green:#3E7A5C;
+    --red:#B03B32;
+    --line:#D8D5CC;
+    --line-strong:#B7B2A5;
+    --grid:#EDEAE1;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif;margin:0;letter-spacing:-0.01em;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .wrap{max-width:1320px;margin:0 auto;padding:28px 28px 80px;}
+
+  .topbar{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:22px;gap:20px;flex-wrap:wrap;}
+  .brand-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;color:var(--blue);text-transform:uppercase;margin-bottom:4px;}
+  .brand h1{font-size:28px;color:var(--ink);}
+  .brand .sub{color:var(--ink-soft);font-size:13px;margin-top:4px;}
+  .topbar-actions{display:flex;gap:10px;align-items:center;}
+
+  .btn{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;border:1.5px solid var(--ink);background:var(--panel);color:var(--ink);padding:9px 16px;border-radius:3px;cursor:pointer;transition:transform .08s ease, background .15s ease;}
+  .btn:hover{background:var(--ink);color:#fff;}
+  .btn:active{transform:translateY(1px);}
+  .btn.primary{background:var(--blue-deep);border-color:var(--blue-deep);color:#fff;}
+  .btn.primary:hover{background:var(--ink);}
+  .btn.ghost{border-color:var(--line-strong);color:var(--ink-soft);}
+  .btn.ghost:hover{background:var(--ink-soft);color:#fff;}
+  .btn.small{padding:5px 10px;font-size:12px;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn:disabled:hover{background:var(--panel);color:var(--ink);}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:22px;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:20px 22px;}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .panel-head h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;}
+  .panel-head .count{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);}
+
+  .settings-row{display:flex;gap:26px;flex-wrap:wrap;margin-bottom:6px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);}
+  .field input[type=number], .field select{font-family:'IBM Plex Mono',monospace;font-size:13px;border:1px solid var(--line-strong);border-radius:3px;padding:7px 9px;width:110px;background:var(--paper);color:var(--ink);}
+  .field.check{flex-direction:row;align-items:center;gap:8px;margin-top:16px;}
+  .field.check label{font-size:12px;text-transform:none;letter-spacing:0;color:var(--ink);}
+  .unit-pair{display:flex;gap:6px;}
+  .unit-pair input[type=number]{width:78px;}
+  .unit-pair select{width:64px;padding:7px 6px;}
+  .settings-hint{font-size:12px;color:var(--ink-faint);margin-top:12px;border-top:1px solid var(--line);padding-top:10px;}
+  tbody select.row-unit{font-family:'IBM Plex Mono',monospace;font-size:12.5px;border:1px solid var(--line-strong);border-radius:3px;padding:6px 6px;background:var(--paper);color:var(--ink);width:100%;}
+
+  table{width:100%;border-collapse:collapse;}
+  thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);border-bottom:1.5px solid var(--ink);padding:6px 8px;}
+  tbody td{padding:5px 8px;border-bottom:1px solid var(--line);}
+  tbody tr:hover{background:var(--grid);}
+  tbody input[type=text], tbody input[type=number]{width:100%;border:1px solid var(--line-strong);border-radius:3px;padding:6px 8px;font-family:'IBM Plex Mono',monospace;font-size:13px;background:var(--paper);color:var(--ink);}
+  tbody input[type=text]{font-family:'Inter',sans-serif;}
+  td.rm{width:34px;text-align:center;}
+  .rm-btn{border:1px solid var(--line-strong);background:var(--panel);color:var(--red);width:26px;height:26px;border-radius:3px;cursor:pointer;font-size:14px;line-height:1;}
+  .rm-btn:hover{background:var(--red);color:#fff;border-color:var(--red);}
+  .add-row{margin-top:10px;}
+  td.colcell{width:44px;}
+  td.colcell input[type=color]{width:38px;height:30px;padding:2px;border:1px solid var(--line-strong);border-radius:3px;cursor:pointer;background:var(--paper);}
+  .swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle;border:1px solid var(--ink);}
+
+  .summary-strip{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;}
+  @media (max-width:1100px){ .summary-strip{grid-template-columns:repeat(4,1fr);} }
+  @media (max-width:640px){ .summary-strip{grid-template-columns:repeat(2,1fr);} }
+
+  .strategy-note{border:1.5px solid var(--blue);background:#EAF1F6;color:var(--blue-deep);padding:10px 16px;border-radius:4px;font-size:12.5px;margin-top:12px;}
+  .strategy-note b{font-family:'Space Grotesk',sans-serif;}
+  .stat{background:var(--panel);padding:14px 16px;}
+  .stat .label{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);margin-bottom:6px;}
+  .stat .value{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--ink);}
+  .stat .value.blue{color:var(--blue-deep);}
+  .stat .value.green{color:var(--green);}
+  .stat .value.amber{color:var(--amber);}
+  .stat .value.red{color:var(--red);}
+
+  .warning-box{border:1.5px solid var(--red);background:#FBEDEB;color:var(--red);padding:12px 16px;border-radius:4px;font-size:13px;margin-top:16px;}
+  .warning-box b{font-family:'Space Grotesk',sans-serif;}
+
+  .sheet-card{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:18px 20px 20px;margin-top:18px;page-break-inside:avoid;}
+  .ticket-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1.5px dashed var(--line-strong);padding-bottom:12px;margin-bottom:16px;}
+  .ticket-head .id{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;}
+  .ticket-head .dims{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-soft);margin-top:3px;}
+  .ticket-meta{display:flex;gap:22px;text-align:right;}
+  .ticket-meta .m .label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);}
+  .ticket-meta .m .val{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;}
+
+  .sheet-body{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;}
+  .sheet-svg-wrap{flex:1 1 560px;min-width:340px;}
+  .cutlist-table{flex:0 0 240px;}
+  .cutlist-table table{font-size:12px;}
+  .cutlist-table thead th{padding:5px 6px;}
+  .cutlist-table tbody td{padding:4px 6px;}
+
+  svg text{font-family:'IBM Plex Mono',monospace;}
+
+  footer.note{margin-top:26px;color:var(--ink-faint);font-size:12px;}
+
+  @media print{
+    body{background:#fff;}
+    .no-print{display:none !important;}
+    .wrap{max-width:100%;padding:0;margin:0;}
+    .panel{border:none;padding:0;}
+    .sheet-card{border:none;padding:0;margin:0;page-break-after:always;break-after:page;}
+    .sheet-card:last-child{page-break-after:auto;}
+    .summary-strip{page-break-after:always;break-after:page;}
+    .topbar{page-break-after:always;break-after:page;padding-bottom:0;margin-bottom:0;border:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-eyebrow">Sheet &amp; Glass Cutting · Guillotine Layout Engine</div>
+      <h1>Cutlist — 2D Sheet Optimizer</h1>
+      <div class="sub">Enter stock sheets and required pieces below. The engine nests pieces into straight, edge-to-edge shelf cuts — the way a real panel saw or glass cutter works.</div>
+    </div>
+    <div class="topbar-actions no-print">
+      <button class="btn ghost" id="loadSampleBtn">Load sample data</button>
+      <button class="btn primary" id="optimizeBtn">Optimize layout</button>
+      <button class="btn" id="printBtn" disabled>Print cut sheets</button>
+    </div>
+  </div>
+
+  <div class="grid no-print">
+
+    <div class="panel">
+      <div class="panel-head"><h2>Cutting settings</h2></div>
+      <div class="settings-row">
+        <div class="field">
+          <label>Blade kerf</label>
+          <div class="unit-pair">
+            <input type="number" id="kerfInput" value="4" min="0" step="0.5">
+            <select id="kerfUnit"><option value="mm">mm</option><option value="in">in</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Edge trim (per side)</label>
+          <div class="unit-pair">
+            <input type="number" id="trimInput" value="5" min="0" step="0.5">
+            <select id="trimUnit"><option value="mm">mm</option><option value="in">in</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Show results in</label>
+          <select id="displayUnitSel">
+            <option value="mm">mm</option>
+            <option value="in">in</option>
+          </select>
+        </div>
+        <div class="field check">
+          <input type="checkbox" id="rotateChk" checked>
+          <label for="rotateChk">Allow 90° rotation</label>
+        </div>
+      </div>
+      <div class="settings-hint">Each sheet and each glass row below carries its own mm/in selector, so you can mix — e.g. sheets in inches, glass sizes in mm. Everything is converted internally before layout so results stay accurate.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Stock sheets</h2><span class="count" id="sheetCount">0 sizes</span></div>
+      <table id="sheetTable">
+        <thead><tr><th style="width:22%">Width (W)</th><th style="width:22%">Height (H)</th><th style="width:18%">Qty available</th><th style="width:16%">Unit</th><th></th></tr></thead>
+        <tbody id="sheetBody"></tbody>
+      </table>
+      <button class="btn small add-row" id="addSheetBtn">+ Add sheet size</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Glass pieces required</h2><span class="count" id="glassCount">0 pieces</span></div>
+      <table id="glassTable">
+        <thead><tr><th style="width:15%">Width (W)</th><th style="width:15%">Height (H)</th><th style="width:10%">Qty</th><th style="width:21%">Tag / Label</th><th style="width:12%">Colour</th><th style="width:13%">Unit</th><th></th></tr></thead>
+        <tbody id="glassBody"></tbody>
+      </table>
+      <button class="btn small add-row" id="addGlassBtn">+ Add piece</button>
+    </div>
+
+  </div>
+
+  <div id="results"></div>
+
+  <footer class="note no-print">Layout uses a shelf/guillotine algorithm: every cut runs edge-to-edge across the sheet, matching real panel-saw and glass-cutting practice. Kerf is reserved between pieces; trim is reserved along all four sheet edges. Identical cutting patterns are grouped and shown once with a repeat quantity. Verify critical cuts before production.</footer>
+
+</div>
+
+<script>
+(function(){
+  const sheetBody = document.getElementById('sheetBody');
+  const glassBody = document.getElementById('glassBody');
+  const results = document.getElementById('results');
+  const printBtn = document.getElementById('printBtn');
+
+  function sheetRow(w,h,qty,unit){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="number" class="s-w" value="${w}" min="0.01" step="any"></td>
+      <td><input type="number" class="s-h" value="${h}" min="0.01" step="any"></td>
+      <td><input type="number" class="s-q" value="${qty}" min="1" step="1"></td>
+      <td><select class="s-u row-unit"><option value="mm"${unit!=='in'?' selected':''}>mm</option><option value="in"${unit==='in'?' selected':''}>in</option></select></td>
+      <td class="rm"><button class="rm-btn" title="Remove">×</button></td>`;
+    tr.querySelector('.rm-btn').onclick = ()=>{ tr.remove(); updateCounts(); };
+    sheetBody.appendChild(tr);
+    updateCounts();
+  }
+
+  function glassRow(w,h,qty,tag,color,unit){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="number" class="g-w" value="${w}" min="0.01" step="any"></td>
+      <td><input type="number" class="g-h" value="${h}" min="0.01" step="any"></td>
+      <td><input type="number" class="g-q" value="${qty}" min="1" step="1"></td>
+      <td><input type="text" class="g-t" value="${tag}" placeholder="e.g. W1"></td>
+      <td class="colcell"><input type="color" class="g-c" value="${color||'#BFD9E8'}" title="Glass colour"></td>
+      <td><select class="g-u row-unit"><option value="mm"${unit!=='in'?' selected':''}>mm</option><option value="in"${unit==='in'?' selected':''}>in</option></select></td>
+      <td class="rm"><button class="rm-btn" title="Remove">×</button></td>`;
+    tr.querySelector('.rm-btn').onclick = ()=>{ tr.remove(); updateCounts(); };
+    glassBody.appendChild(tr);
+    updateCounts();
+  }
+
+  function updateCounts(){
+    document.getElementById('sheetCount').textContent = sheetBody.children.length + ' size' + (sheetBody.children.length===1?'':'s');
+    let totalQty = 0;
+    glassBody.querySelectorAll('.g-q').forEach(i=> totalQty += (parseFloat(i.value)||0));
+    document.getElementById('glassCount').textContent = glassBody.children.length + ' rows · ' + totalQty + ' pcs';
+    scheduleAutoOptimize();
+  }
+
+  // Automatic re-optimization: any edit to sheet sizes/quantities, glass pieces/quantities,
+  // kerf, trim, units, or the rotation toggle re-runs both strategies after a short debounce.
+  let autoTimer = null;
+  function scheduleAutoOptimize(){
+    clearTimeout(autoTimer);
+    autoTimer = setTimeout(runOptimize, 350);
+  }
+
+  document.getElementById('addSheetBtn').onclick = ()=> sheetRow(2000,2000,5,'mm');
+  document.getElementById('addGlassBtn').onclick = ()=> glassRow(600,400,1,'','#BFD9E8','mm');
+
+  document.getElementById('loadSampleBtn').onclick = ()=>{
+    sheetBody.innerHTML=''; glassBody.innerHTML='';
+    sheetRow(2000,2000,5,'mm');
+    sheetRow(96,48,3,'in');
+    glassRow(620,570,2,'W4','#BFD9E8','mm');
+    glassRow(650,540,1,'W3','#CBE8D6','mm');
+    glassRow(500,600,4,'W5','#F3E3C3','mm');
+    glassRow(680,740,2,'W2','#D9CDEE','mm');
+    glassRow(24,18,2,'W6','#F0C9C9','in');
+    results.innerHTML=''; printBtn.disabled = true;
+  };
+
+  sheetRow(2000,2000,5,'mm');
+  glassRow(620,570,2,'W4','#BFD9E8','mm');
+  glassRow(650,540,1,'W3','#CBE8D6','mm');
+  glassRow(500,600,4,'W5','#F3E3C3','mm');
+  glassRow(680,740,2,'W2','#D9CDEE','mm');
+
+  sheetBody.addEventListener('input', updateCounts);
+  glassBody.addEventListener('input', updateCounts);
+  ['kerfInput','trimInput','kerfUnit','trimUnit','displayUnitSel','rotateChk'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', scheduleAutoOptimize);
+    document.getElementById(id).addEventListener('change', scheduleAutoOptimize);
+  });
+
+  /* ---------------- Shelf / guillotine packing engine ---------------- */
+
+  function fits(w,h,maxW,maxH){ return w<=maxW+1e-6 && h<=maxH+1e-6; }
+
+  function createBin(spec, trim, index){
+    return {
+      W:spec.w, H:spec.h, typeIndex:spec.typeIndex,
+      usableW: Math.max(spec.w-2*trim,0),
+      usableH: Math.max(spec.h-2*trim,0),
+      trim, currentY:0, shelves:[], index
+    };
+  }
+
+  function bestOptionInBin(bin, item, kerf, allowRotate){
+    const orientations = [{w:item.w,h:item.h,rot:false}];
+    if(allowRotate && item.w!==item.h) orientations.push({w:item.h,h:item.w,rot:true});
+
+    let bestExisting = null;
+    for(const s of bin.shelves){
+      const remW = bin.usableW - s.usedWidth;
+      for(const o of orientations){
+        if(fits(o.w+kerf, o.h, remW, s.height)){
+          const waste = s.height - o.h;
+          if(!bestExisting || waste < bestExisting.waste){
+            bestExisting = {type:'existing', shelf:s, w:o.w, h:o.h, rot:o.rot, waste};
+          }
+        }
+      }
+    }
+    if(bestExisting) return bestExisting;
+
+    let bestNew = null;
+    for(const o of orientations){
+      if(fits(o.w+kerf, o.h+kerf, bin.usableW, bin.usableH-bin.currentY)){
+        if(!bestNew || o.h < bestNew.h){
+          bestNew = {type:'new', w:o.w, h:o.h, rot:o.rot};
+        }
+      }
+    }
+    return bestNew;
+  }
+
+  function placeInBin(bin, item, option, kerf){
+    if(option.type==='existing'){
+      const s = option.shelf;
+      const x = bin.trim + s.usedWidth;
+      const y = bin.trim + s.y;
+      s.items.push({x,y,w:option.w,h:option.h,rot:option.rot,tag:item.tag,color:item.color,srcW:item.w,srcH:item.h});
+      s.usedWidth += option.w + kerf;
+    } else {
+      const s = {y:bin.currentY, height:option.h, usedWidth:0, items:[]};
+      const x = bin.trim + s.usedWidth;
+      const y = bin.trim + s.y;
+      s.items.push({x,y,w:option.w,h:option.h,rot:option.rot,tag:item.tag,color:item.color,srcW:item.w,srcH:item.h});
+      s.usedWidth = option.w + kerf;
+      bin.shelves.push(s);
+      bin.currentY += option.h + kerf;
+    }
+  }
+
+  function packShelves(sheetTypes, pieces, kerf, trim, allowRotate){
+    let items = []; let counter=0;
+    pieces.forEach(p=>{
+      for(let i=0;i<p.qty;i++){
+        items.push({w:p.w,h:p.h,tag:p.tag||('Piece '+(++counter)), color:p.color||'#BFD9E8', area:p.w*p.h});
+      }
+    });
+    items.sort((a,b)=> b.area - a.area || Math.max(b.w,b.h)-Math.max(a.w,a.h));
+
+    let sheetPool = [];
+    sheetTypes.forEach((s,ti)=>{ for(let i=0;i<s.qty;i++) sheetPool.push({w:s.w,h:s.h,typeIndex:ti}); });
+
+    const bins = [];
+    const unplaced = [];
+
+    for(const item of items){
+      let best = null;
+      for(const bin of bins){
+        const opt = bestOptionInBin(bin, item, kerf, allowRotate);
+        if(opt){
+          const score = opt.type==='existing' ? opt.waste : (1e9 + opt.h);
+          if(!best || score < best.score) best = {bin, opt, score};
+        }
+      }
+      if(best){ placeInBin(best.bin, item, best.opt, kerf); continue; }
+
+      let poolIdx=-1;
+      for(let i=0;i<sheetPool.length;i++){
+        const s = sheetPool[i];
+        const usableW = s.w-2*trim, usableH = s.h-2*trim;
+        const fitsN = fits(item.w+kerf, item.h+kerf, usableW, usableH);
+        const fitsR = allowRotate && fits(item.h+kerf, item.w+kerf, usableW, usableH);
+        if(fitsN||fitsR){ poolIdx=i; break; }
+      }
+      if(poolIdx===-1){ unplaced.push(item); continue; }
+      const spec = sheetPool.splice(poolIdx,1)[0];
+      const bin = createBin(spec, trim, bins.length+1);
+      const opt = bestOptionInBin(bin, item, kerf, allowRotate);
+      if(opt){ placeInBin(bin, item, opt, kerf); bins.push(bin); }
+      else unplaced.push(item);
+    }
+    return {bins, unplaced};
+  }
+
+  /* ---- Flatten a raw shelf-bin into a normalized bin, optionally transposing it back
+     from "rotated sheet space" into real sheet space. This is how Vertical-strategy
+     results (packed as if the sheet were turned 90°) are converted back for display:
+     swapping x<->y and w<->h on every item/waste rect is a valid axis relabeling that
+     preserves all adjacency, containment and non-overlap guarantees. ---- */
+  function normalizeBin(bin, transposed){
+    const waste = collectWasteRaw(bin);
+    let items = [];
+    bin.shelves.forEach(s=> s.items.forEach(it=> items.push({...it})));
+    if(transposed){
+      items = items.map(it=>({...it, x:it.y, y:it.x, w:it.h, h:it.w, rot: (it.w!==it.h)? !it.rot : it.rot}));
+      const wasteT = waste.map(r=>({x:r.y,y:r.x,w:r.h,h:r.w}));
+      return {W:bin.H, H:bin.W, usableW:bin.usableH, usableH:bin.usableW, trim:bin.trim, items, waste:wasteT, typeIndex:bin.typeIndex, index:bin.index};
+    }
+    return {W:bin.W, H:bin.H, usableW:bin.usableW, usableH:bin.usableH, trim:bin.trim, items, waste, typeIndex:bin.typeIndex, index:bin.index};
+  }
+
+  /* Runs the shelf-packer once per orientation strategy.
+     axisVertical=false -> "Horizontal" strategy: shelves are horizontal rows, filled left-to-right,
+       stacked top-to-bottom (the sheet is used at its native W×H).
+     axisVertical=true  -> "Vertical" strategy: shelves are vertical columns, filled top-to-bottom,
+       stacked left-to-right. Implemented by packing the sheet transposed (H×W) and flipping
+       every coordinate back afterwards via normalizeBin. */
+  function runPackingStrategy(sheetTypes, pieces, kerf, trim, allowRotate, axisVertical){
+    const sheetsForPack = axisVertical ? sheetTypes.map(s=>({w:s.h, h:s.w, qty:s.qty})) : sheetTypes;
+    const {bins, unplaced} = packShelves(sheetsForPack, pieces, kerf, trim, allowRotate);
+    return {bins: bins.map(b=> normalizeBin(b, axisVertical)), unplaced};
+  }
+
+  function scoreResult(res){
+    const sheetArea = res.bins.reduce((s,b)=> s+b.W*b.H, 0);
+    const usedArea = res.bins.reduce((s,b)=> s + b.items.reduce((s2,it)=> s2+it.w*it.h, 0), 0);
+    const waste = sheetArea>0 ? (sheetArea-usedArea)/sheetArea*100 : (res.unplaced.length>0 ? 100 : 0);
+    return {sheets: res.bins.length, waste, unplaced: res.unplaced.length, sheetArea, usedArea};
+  }
+
+  // Priority order: fewest unplaced pieces > lowest waste % > fewest sheets > highest used area.
+  function isBetter(a,b){
+    if(a.unplaced !== b.unplaced) return a.unplaced < b.unplaced;
+    if(Math.abs(a.waste-b.waste) > 0.01) return a.waste < b.waste;
+    if(a.sheets !== b.sheets) return a.sheets < b.sheets;
+    return a.usedArea > b.usedArea;
+  }
+
+  function binSignature(bin){
+    const parts = [];
+    bin.items.forEach(it=>{
+      parts.push([Math.round(it.x*10),Math.round(it.y*10),Math.round(it.w*10),Math.round(it.h*10),it.rot?1:0,it.tag].join(':'));
+    });
+    parts.sort();
+    return bin.W+'x'+bin.H+'|'+parts.join(',');
+  }
+
+  function groupBins(bins){
+    const map = new Map();
+    bins.forEach(b=>{
+      const sig = binSignature(b);
+      if(!map.has(sig)) map.set(sig, {bin:b, count:0});
+      map.get(sig).count++;
+    });
+    return Array.from(map.values());
+  }
+
+  /* ---------------- Rendering (monochrome technical diagram) ---------------- */
+
+  const MM_PER_IN = 25.4;
+  function toMM(v, unit){ return unit==='in' ? v*MM_PER_IN : v; }
+  function fromMM(v, unit){ return unit==='in' ? v/MM_PER_IN : v; }
+  function fmt(n, unit){
+    const dp = unit==='in' ? 3 : 1;
+    const f = Math.pow(10,dp);
+    return (Math.round(n*f)/f).toString();
+  }
+  function fmtArea(mm2, unit){
+    if(unit==='in'){
+      const sqft = mm2/1e6*10.76391;
+      return fmt(sqft,'mm') + ' ft²';
+    }
+    return fmt(mm2/1e6,'mm') + ' m²';
+  }
+  function escapeXML(s){ return String(s).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+
+  function collectWasteRaw(bin){
+    const rects = [];
+    bin.shelves.forEach(s=>{
+      const shelfTop = bin.trim + s.y;
+      const shelfBottom = shelfTop + s.height;
+      // trailing waste at end of shelf
+      const usedRight = bin.trim + s.usedWidth;
+      const sheetRight = bin.trim + bin.usableW;
+      if(sheetRight - usedRight > 0.5){
+        rects.push({x:usedRight, y:shelfTop, w:sheetRight-usedRight, h:s.height});
+      }
+      // per-item shortfall waste below each piece
+      s.items.forEach(it=>{
+        if(shelfBottom - (it.y+it.h) > 0.5){
+          rects.push({x:it.x, y:it.y+it.h, w:it.w, h:shelfBottom-(it.y+it.h)});
+        }
+      });
+    });
+    // bottom waste beneath the last shelf
+    const usedBottom = bin.trim + bin.currentY;
+    const sheetBottom = bin.trim + bin.usableH;
+    if(sheetBottom - usedBottom > 0.5){
+      rects.push({x:bin.trim, y:usedBottom, w:bin.usableW, h:sheetBottom-usedBottom});
+    }
+    return rects;
+  }
+
+  function renderSheetSVG(bin, unit, meta){
+    const W = bin.W, H = bin.H;
+    const maxW = 720, maxH = 460;
+    const scale = Math.min(maxW/W, maxH/H);
+    const svgW = W*scale, svgH = H*scale;
+    const padTop = 40, padLeft = 46, padRight = 60, padBottom = 20;
+    const totalW = svgW + padLeft + padRight;
+    const totalH = svgH + padTop + padBottom;
+
+    const waste = bin.waste;
+    let wasteSVG = '';
+    waste.forEach(r=>{
+      if(r.w<=0.01||r.h<=0.01) return;
+      const x=r.x*scale+padLeft, y=r.y*scale+padTop, w=r.w*scale, h=r.h*scale;
+      wasteSVG += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#hatch)" stroke="#000" stroke-width="0.75"/>`;
+    });
+
+    // trim border hatch (if trim>0)
+    let trimSVG = '';
+    if(bin.trim>0.01){
+      const t = bin.trim*scale;
+      trimSVG += `<rect x="${padLeft}" y="${padTop}" width="${svgW}" height="${t}" fill="url(#hatch)"/>`; // top
+      trimSVG += `<rect x="${padLeft}" y="${padTop+svgH-t}" width="${svgW}" height="${t}" fill="url(#hatch)"/>`; // bottom
+      trimSVG += `<rect x="${padLeft}" y="${padTop}" width="${t}" height="${svgH}" fill="url(#hatch)"/>`; // left
+      trimSVG += `<rect x="${padLeft+svgW-t}" y="${padTop}" width="${t}" height="${svgH}" fill="url(#hatch)"/>`; // right
+    }
+
+    let pieces = '';
+    bin.items.forEach(it=>{
+      const x = it.x*scale+padLeft, y = it.y*scale+padTop;
+      const w = it.w*scale, h = it.h*scale;
+      const cx = x+w/2, cy = y+h/2;
+      const fitsTwoLines = h > 30;
+      pieces += `
+        <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${it.color||'#BFD9E8'}" fill-opacity="0.55" stroke="#000" stroke-width="1"/>
+        <text x="${cx}" y="${fitsTwoLines? cy-3 : cy+4}" font-size="13" font-weight="600" text-anchor="middle" fill="#000">${escapeXML(it.tag)}</text>
+        ${fitsTwoLines?`<text x="${cx}" y="${cy+13}" font-size="11" text-anchor="middle" fill="#000">${fmt(fromMM(it.srcW,unit),unit)} × ${fmt(fromMM(it.srcH,unit),unit)}</text>`:''}
+        ${it.rot?`<text x="${x+8}" y="${y+14}" font-size="10" fill="#555">⟳</text>`:''}
+      `;
+    });
+
+    // outer sheet border
+    const border = `<rect x="${padLeft}" y="${padTop}" width="${svgW}" height="${svgH}" fill="none" stroke="#000" stroke-width="1.5"/>`;
+
+    // overall width label (top) with tick marks
+    const dimTop = `
+      <line x1="${padLeft}" y1="${padTop-12}" x2="${padLeft+svgW}" y2="${padTop-12}" stroke="#000" stroke-width="0.75"/>
+      <line x1="${padLeft}" y1="${padTop-16}" x2="${padLeft}" y2="${padTop-8}" stroke="#000" stroke-width="0.75"/>
+      <line x1="${padLeft+svgW}" y1="${padTop-16}" x2="${padLeft+svgW}" y2="${padTop-8}" stroke="#000" stroke-width="0.75"/>
+      <text x="${padLeft+svgW/2}" y="${padTop-18}" text-anchor="middle" font-size="12" fill="#000">${fmt(fromMM(W,unit),unit)} ${unit}</text>
+    `;
+    // overall height label (right side), rotated
+    const dimRight = `
+      <line x1="${padLeft+svgW+12}" y1="${padTop}" x2="${padLeft+svgW+12}" y2="${padTop+svgH}" stroke="#000" stroke-width="0.75"/>
+      <line x1="${padLeft+svgW+8}" y1="${padTop}" x2="${padLeft+svgW+16}" y2="${padTop}" stroke="#000" stroke-width="0.75"/>
+      <line x1="${padLeft+svgW+8}" y1="${padTop+svgH}" x2="${padLeft+svgW+16}" y2="${padTop+svgH}" stroke="#000" stroke-width="0.75"/>
+      <text x="${padLeft+svgW+26}" y="${padTop+svgH/2}" text-anchor="middle" font-size="12" fill="#000" transform="rotate(90 ${padLeft+svgW+26} ${padTop+svgH/2})">${fmt(fromMM(H,unit),unit)} ${unit}</text>
+    `;
+
+    // rotation-allowed icon, top-right corner
+    const rotIcon = meta.allowRotate ? `
+      <g transform="translate(${totalW-24},14)">
+        <path d="M -8,0 A 8,8 0 1 1 -8,1 M -8,0 l -4,-4 M -8,0 l 4,-4" fill="none" stroke="#000" stroke-width="1.3"/>
+      </g>` : '';
+
+    // left-side meta text (Quantity / Utilization), rotated
+    const leftMeta = `<text x="12" y="${padTop+svgH/2}" text-anchor="middle" font-size="11" fill="#000" transform="rotate(-90 12 ${padTop+svgH/2})">Quantity= ${meta.qty} : Utilization= ${fmt(meta.util,'mm')}%</text>`;
+
+    return `<svg viewBox="0 0 ${totalW} ${totalH}" width="100%" height="auto" style="max-width:${totalW}px">
+      <defs>
+        <pattern id="hatch" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(45)">
+          <rect width="7" height="7" fill="#fff"/>
+          <line x1="0" y1="0" x2="0" y2="7" stroke="#000" stroke-width="1"/>
+        </pattern>
+      </defs>
+      ${trimSVG}
+      ${wasteSVG}
+      ${border}
+      ${pieces}
+      ${dimTop}
+      ${dimRight}
+      ${rotIcon}
+      ${leftMeta}
+    </svg>`;
+  }
+
+  function runOptimize(){
+    const displayUnit = document.getElementById('displayUnitSel').value;
+    const kerfUnit = document.getElementById('kerfUnit').value;
+    const trimUnit = document.getElementById('trimUnit').value;
+    const kerf = toMM(parseFloat(document.getElementById('kerfInput').value)||0, kerfUnit);
+    const trim = toMM(parseFloat(document.getElementById('trimInput').value)||0, trimUnit);
+    const allowRotate = document.getElementById('rotateChk').checked;
+
+    const sheetTypes = [];
+    sheetBody.querySelectorAll('tr').forEach(tr=>{
+      const rowUnit = tr.querySelector('.s-u').value;
+      const w = toMM(parseFloat(tr.querySelector('.s-w').value)||0, rowUnit);
+      const h = toMM(parseFloat(tr.querySelector('.s-h').value)||0, rowUnit);
+      const q = parseInt(tr.querySelector('.s-q').value)||0;
+      if(w>0 && h>0 && q>0) sheetTypes.push({w,h,qty:q});
+    });
+
+    const pieces = [];
+    glassBody.querySelectorAll('tr').forEach(tr=>{
+      const rowUnit = tr.querySelector('.g-u').value;
+      const w = toMM(parseFloat(tr.querySelector('.g-w').value)||0, rowUnit);
+      const h = toMM(parseFloat(tr.querySelector('.g-h').value)||0, rowUnit);
+      const q = parseInt(tr.querySelector('.g-q').value)||0;
+      const tag = tr.querySelector('.g-t').value.trim();
+      const color = tr.querySelector('.g-c').value || '#BFD9E8';
+      if(w>0 && h>0 && q>0) pieces.push({w,h,qty:q,tag,color});
+    });
+
+    if(sheetTypes.length===0 || pieces.length===0){
+      results.innerHTML = `<div class="warning-box"><b>Missing data.</b> Add at least one stock sheet size and one glass piece before optimizing.</div>`;
+      printBtn.disabled = true;
+      return;
+    }
+
+    // All values are now in mm internally, regardless of the unit each row was entered in —
+    // this is what keeps the nesting geometrically accurate when sheets and glass mix units.
+    //
+    // Evaluate BOTH nesting strategies — Horizontal (row shelves) and Vertical (column
+    // shelves, sheet packed transposed then flipped back) — and automatically keep whichever
+    // yields fewer unplaced pieces, then lower waste %, then fewer sheets.
+    const resultH = runPackingStrategy(sheetTypes, pieces, kerf, trim, allowRotate, false);
+    const resultV = runPackingStrategy(sheetTypes, pieces, kerf, trim, allowRotate, true);
+    const scoreH = scoreResult(resultH), scoreV = scoreResult(resultV);
+    const vChosen = isBetter(scoreV, scoreH);
+    const chosen = vChosen ? resultV : resultH;
+    const chosenScore = vChosen ? scoreV : scoreH;
+    const otherScore = vChosen ? scoreH : scoreV;
+    const strategyName = vChosen ? 'Vertical' : 'Horizontal';
+    const otherName = vChosen ? 'Horizontal' : 'Vertical';
+    const {bins, unplaced} = chosen;
+
+    const sheetArea = chosenScore.sheetArea, usedArea = chosenScore.usedArea;
+    const utilization = sheetArea>0 ? (usedArea/sheetArea*100) : 0;
+    const wastePct = 100 - utilization;
+    const totalPieces = pieces.reduce((s,p)=>s+p.qty,0);
+    const placedPieces = totalPieces - unplaced.length;
+    const requiredArea = pieces.reduce((s,p)=> s + p.w*p.h*p.qty, 0);
+
+    let html = '';
+    html += `<div class="summary-strip">
+      <div class="stat"><div class="label">Sheets used</div><div class="value blue">${bins.length}</div></div>
+      <div class="stat"><div class="label">Pieces placed</div><div class="value">${placedPieces} / ${totalPieces}</div></div>
+      <div class="stat"><div class="label">Waste</div><div class="value ${wastePct<=25?'green':wastePct<=50?'amber':'red'}">${fmt(wastePct,'mm')}%</div></div>
+      <div class="stat"><div class="label">Glass area required</div><div class="value">${fmtArea(requiredArea,displayUnit)}</div></div>
+      <div class="stat"><div class="label">Sheet area</div><div class="value">${fmtArea(sheetArea,displayUnit)}</div></div>
+      <div class="stat"><div class="label">Used area</div><div class="value">${fmtArea(usedArea,displayUnit)}</div></div>
+      <div class="stat"><div class="label">Waste area</div><div class="value amber">${fmtArea(sheetArea-usedArea,displayUnit)}</div></div>
+      <div class="stat"><div class="label">Utilization</div><div class="value ${utilization>=75?'green':utilization>=50?'amber':'red'}">${fmt(utilization,'mm')}%</div></div>
+    </div>`;
+
+    const otherWastePct = 100 - (otherScore.sheetArea>0 ? otherScore.usedArea/otherScore.sheetArea*100 : 0);
+    const otherNote = otherScore.unplaced>0
+      ? `${otherName} left ${otherScore.unplaced} piece(s) unplaced`
+      : `${otherName}: ${fmt(otherWastePct,'mm')}% waste, ${otherScore.sheets} sheet(s)`;
+    html += `<div class="strategy-note"><b>${strategyName} shelf cuts</b> selected automatically — lowest wastage (${fmt(wastePct,'mm')}% vs ${otherNote}).</div>`;
+
+    if(unplaced.length>0){
+      const byTag = {};
+      unplaced.forEach(p=>{ byTag[p.tag] = (byTag[p.tag]||0)+1; });
+      const list = Object.entries(byTag).map(([t,c])=>`${escapeXML(t)} ×${c}`).join(', ');
+      html += `<div class="warning-box"><b>${unplaced.length} piece(s) could not be placed</b> — no remaining sheet stock was large enough. ${list}. Add more/larger sheet sizes and re-optimize.</div>`;
+    }
+
+    const groups = groupBins(bins);
+    groups.forEach((g,i)=>{
+      const bin = g.bin;
+      const binArea = bin.W*bin.H;
+      const allItems = bin.items;
+      const binUsed = allItems.reduce((s,it)=> s+it.w*it.h, 0);
+      const util = binArea>0 ? (binUsed/binArea*100) : 0;
+      const sortedPieces = [...allItems].sort((a,b)=> (a.tag>b.tag?1:-1));
+      const svg = renderSheetSVG(bin, displayUnit, {qty:g.count, util, allowRotate});
+
+      html += `<div class="sheet-card">
+        <div class="ticket-head">
+          <div>
+            <div class="id">Cutting Pattern ${i+1}</div>
+            <div class="dims">${fmt(fromMM(bin.W,displayUnit),displayUnit)} × ${fmt(fromMM(bin.H,displayUnit),displayUnit)} ${displayUnit} &nbsp;·&nbsp; kerf ${fmt(fromMM(kerf,displayUnit),displayUnit)}${displayUnit} &nbsp;·&nbsp; trim ${fmt(fromMM(trim,displayUnit),displayUnit)}${displayUnit}</div>
+          </div>
+          <div class="ticket-meta">
+            <div class="m"><div class="label">Repeats</div><div class="val">${g.count}×</div></div>
+            <div class="m"><div class="label">Pieces / sheet</div><div class="val">${allItems.length}</div></div>
+            <div class="m"><div class="label">Utilization</div><div class="val">${fmt(util,'mm')}%</div></div>
+          </div>
+        </div>
+        <div class="sheet-body">
+          <div class="sheet-svg-wrap">${svg}</div>
+          <div class="cutlist-table">
+            <table>
+              <thead><tr><th></th><th>Tag</th><th>Size</th></tr></thead>
+              <tbody>
+                ${sortedPieces.map(p=>`<tr><td><span class="swatch" style="background:${p.color||'#BFD9E8'}"></span></td><td>${escapeXML(p.tag)}</td><td class="mono">${fmt(fromMM(p.srcW,displayUnit),displayUnit)}×${fmt(fromMM(p.srcH,displayUnit),displayUnit)}${p.rot?' (⟳)':''}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
+    });
+
+    results.innerHTML = html;
+    printBtn.disabled = false;
+  }
+
+  document.getElementById('optimizeBtn').onclick = ()=>{ clearTimeout(autoTimer); runOptimize(); };
+  printBtn.onclick = ()=> window.print();
+
+})();
+</script>
+</body>
+</html>
